@@ -1,0 +1,88 @@
+/*
+ * Lab_4.c
+ *
+ * Created: 09/04/2024 01:20:33 p. m.
+ * Author : Albert V H
+ */ 
+// LIBRERIAS
+#include <avr/io.h>
+#include <avr/interrupt.h>
+// FUNCIONES
+void setup(void);
+void timmer0(void);
+void mover_pines(void);
+//VARIABLES
+int contador_b;
+int contador_c;
+int sumar;
+int restar;
+int transistores;
+int contador;
+// LOOP PRINCIPAL
+int main(void)
+{
+	setup();
+	timmer0();
+	sumar=0;
+	restar=0;
+	contador_c=0;
+    while (1) 
+    {
+	if((sumar==1) ){
+		sumar=0;
+		contador++;
+		mover_pines();
+    }else if((restar==1) ){
+		restar=0;
+		contador--;
+		mover_pines();
+	}
+}
+}
+// FUNCIONES E INTERUPCIONES 
+void setup(void){
+	// AQUI SE SETEA LA VELOCIADAD DEL RELOJ A 4Mhz
+	CLKPR |= (1<<CLKPCE);
+	CLKPR = 0x01;
+	// ACTIVAR LOS PUERTOS D COMO SALIDAS
+ 	DDRD = 0xFF;
+	PORTD =0x00;
+	// ACTIVAR LOS PUERTOS B COMO SALIDAS
+	DDRB= 0xFF;
+	PORTB= 0x00;
+	//ACTIVAR LOS PUERTOS 0-3 COMO SALIDAS Y 4- 7 COMO ENTRADAS
+	DDRC= 0x0F;
+	PORTC=0xF0;
+	//ACTIVAR  LAS INTERUPCCIONES DEL PUERTO C
+	PCICR |= (1<<PCIE1);
+	PCMSK1 |= (1<< PCINT13)|(1<<PCINT12);
+	//DESACTIVAR EL RX Y TX
+	UCSR0B = 0x00;
+	sei();
+}
+void mover_pines(void){
+	contador_c = (contador>>4)& 0b1111;
+	contador_b=contador<<2;
+	PORTB= contador_b;
+	PORTC= (contador_c)|0xF0;
+}
+void timmer0(void){
+	TCCR0B |= (1<<CS02)|(1<<CS00);
+	TCNT0 = 217;
+	TIMSK0 |= (1<<TOV0);
+}
+//INTERUPCIONES 
+ISR(PCINT1_vect){
+	if(!(PINC &(1<<PINC4))){  //CUANDO ESTÉ APACHADO FUNCIONA 
+		sumar=1;
+		restar=0;
+		
+	}else if(!(PINC &(1<<PINC5))){
+		sumar=0;
+		restar=1;
+	}
+}
+ISR(TIMER0_OVF_vect){
+	TCNT0=217;
+	transistores++;
+}
